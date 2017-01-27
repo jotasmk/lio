@@ -7,7 +7,7 @@ ifeq ($(intel),1)
   FFLAGS+= -module $(obj_path)
   FFLAGS+= -fpp
 #  FFLAGS+= -check bounds
-#  FFLAGS+= -traceback -check all -fp-stack-check
+  FFLAGS+= -traceback -check all -fp-stack-check
 else
   FC     = gfortran
   FFLAGS+= -I$(obj_path) -J$(obj_path)
@@ -83,6 +83,7 @@ tmplist += init_amber.o init.o lio_init.o liomain.o lio_finalize.o
 tmplist += dft_get_mm_forces.o dft_get_qm_forces.o
 tmplist += alg.o drive.o func.o grid.o dipmem.o jarz.o
 tmplist += int1.o int2.o int2G.o int3mem.o intSG.o
+tmplist += int1_new.o
 tmplist += garcha_mod.o mathsubs.o cubegen.o density.o
 
 ifeq ($(cublas),1)
@@ -112,6 +113,7 @@ ifeq ($(intel),1)
   tmplist += dft_get_mm_forces.o dft_get_qm_forces.o
   tmplist += alg.o drive.o func.o grid.o dipmem.o jarz.o
   tmplist += int1.o int2.o int2G.o int3mem.o  intSG.o
+  tmplist += int1_new.o
   tmplist += garcha_mod.o cubegen.o density.o
   $(tmplist:%.o=$(obj_path)/%.o) : myflags:=-mp1 -ip
   #$(tmplist:%.o=$(obj_path)/%.o) : private myflags+=$(optim3) -mp1 -ip

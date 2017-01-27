@@ -34,7 +34,8 @@ subroutine lio_defaults()
                            max_function_exponent, min_points_per_cube,         &
                            assign_all_functions, remove_zero_weights,          &
                            energy_all_iterations, free_global_memory, dipole,  &
-                           lowdin, mulliken, print_coeffs, number_restr, Dbug
+                           lowdin, mulliken, print_coeffs, number_restr, Dbug, &
+                           break_rmm
 
     use ECP_mod   , only : ecpmode, ecptypes, tipeECP, ZlistECP, cutECP,       &
                            local_nonlocal, ecp_debug, ecp_full_range_int,      &
@@ -76,6 +77,10 @@ subroutine lio_defaults()
 
 !   Distance restrain options
     number_restr   = 0             ;
+
+!   This variable enable routines that reemplace RMM array for smaller
+!   arrays at this moment it is only use for develop code
+    break_rmm = .false.
 
 !   Debug
     Dbug = .false.                 ;

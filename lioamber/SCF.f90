@@ -14,7 +14,7 @@
       npas, verbose, RMM, X, SHFT, GRAD, npasw, igrid, energy_freq, converge,          &
       noconverge, cubegen_only, cube_dens, cube_orb, cube_elec, VCINP, Nunp, GOLD,     &
       igrid2, predcoef, nsol, r, pc, timedep, tdrestart, DIIS, told, Etold, Enucl,     &
-      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug
+      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug, break_rmm, Fock_Overlap, Fock_Hcore
 !      use mathsubs
       use ECP_mod, only : ecpmode, term1e, VAAA, VAAB, VBAC, &
        FOCK_ECP_read,FOCK_ECP_write,IzECP
@@ -206,8 +206,22 @@
 !
       call g2g_timer_sum_start('1-e Fock')
       call g2g_timer_sum_start('Nuclear attraction')
-      call int1(En)
+!      call int1(En)
 	
+        
+        IF (break_rmm) THEN
+!           WRITE(*,*) "TESTEANDO rutinas sin RMM"
+!           Write(*,*) "En antes", En
+	   WRITE(*,*) "usando int1_new"
+           call int1_new(En)
+!           Write(*,*) "En despues", En
+!           call COMPARE_VEC(Fock_Overlap,MM,M5, "SyF-M5")
+	   call COPY_VEC(Fock_Overlap,MM,M5) !Copia a RMM, luego sacare esta parte, Nick            
+	   call COPY_VEC(Fock_Hcore,MM,M11)
+	ELSE
+	   call int1(En)
+        END IF
+
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !%%%%%%%%%%%%%%%    Effective Core Potential Add    %%%%%%%%%%%%%%%%%!
@@ -228,7 +242,19 @@
           call g2g_timer_sum_start('QM/MM')
        if (igpu.le.1) then
           call g2g_timer_start('intsol')
-          call intsol(E1s,Ens,.true.)
+!          call intsol(E1s,Ens,.true.)
+
+          IF (break_rmm) THEN
+		WRITE(*,*) "usando intsol_new not tested yet"
+             call intsol_new(E1s,Ens,.true.)
+             call COPY_VEC(Fock_Overlap,MM,M5) !Copia a RMM, luego sacare esta parte, Nick            
+             call COPY_VEC(Fock_Hcore,MM,M11)
+          ELSE
+             call intsol(E1s,Ens,.true.)
+          END IF
+
+
+
           call g2g_timer_stop('intsol')
         else
           call aint_qmmm_init(nsol,r,pc)
@@ -1538,5 +1564,27 @@
 	   RMM(POINTER_RMM+i-1)=VEC(i)
 	end do
 	END SUBROUTINE COPY_VEC
+
+        SUBROUTINE COMPARE_VEC(VEC,DIM_VEC,POINTER_RMM, label)
+!subrutina temporal para empezar a romper RMM
+!compara el vector VEC a RMM posicion POINTER_RMM
+        use garcha_mod, ONLY: RMM
+        IMPLICIT NONE
+        integer, intent(in) :: DIM_VEC,POINTER_RMM
+        real*8, dimension(DIM_VEC), intent(in) :: VEC
+        integer :: i
+        CHARACTER(LEN=20), intent(in) :: label
+	real*8 :: diff, acum
+	acum=0.d0
+        do i=1, DIM_VEC
+	   diff=RMM(POINTER_RMM+i-1)-VEC(i)
+           IF (diff .gt. 1.d-10) then
+                write(*,*) "problems on ",label, i
+                STOP
+           END IF
+	   acum=acum+diff**2
+        end do
+	WRITE(*,*) "diferencia con RMM", acum
+        END SUBROUTINE COMPARE_VEC
 
 
