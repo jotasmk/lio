@@ -52,17 +52,17 @@
 !
 ! Pointers
 ! first P
-      M1=1
+!      M1=1
 ! now Pnew
-      M3=M1+MM
+!      M3=M1+MM
 ! now S, F also uses the same position after S was used
-      M11=M3+MM
+!      M11=M3+MM
 ! now G
-      M7=M11+MM
+!      M7=M11+MM
 ! now Gm
-      M9=M7+MMd
+!      M9=M7+MMd
 ! now H
-      M11=M9+MMd
+!      M11=M9+MMd
 !
       E1s=0.0D0
       Ens=0.0D0

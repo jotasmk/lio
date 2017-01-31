@@ -14,7 +14,8 @@
       npas, verbose, RMM, X, SHFT, GRAD, npasw, igrid, energy_freq, converge,          &
       noconverge, cubegen_only, cube_dens, cube_orb, cube_elec, VCINP, Nunp, GOLD,     &
       igrid2, predcoef, nsol, r, pc, timedep, tdrestart, DIIS, told, Etold, Enucl,     &
-      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug, break_rmm, Fock_Overlap, Fock_Hcore
+      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug, break_rmm, Fock_Overlap, Fock_Hcore,   &
+      Density_fitting_G, Density_fitting_Gm
 !      use mathsubs
       use ECP_mod, only : ecpmode, term1e, VAAA, VAAB, VBAC, &
        FOCK_ECP_read,FOCK_ECP_write,IzECP
@@ -67,7 +68,7 @@
 !------------------------------------------------------
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
-        double precision :: Egood, Evieja !variables para criterio de co
+        double precision :: Egood, Evieja !variables para criterio de convergencia
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 
 !------------------------------------------------------
@@ -104,6 +105,7 @@
       npas=npas+1
       E=0.0D0
       E1=0.0D0
+      E1s=0.0D0
       En=0.0D0
       E2=0.0D0
       Es=0.0D0
@@ -213,7 +215,7 @@
 !           WRITE(*,*) "TESTEANDO rutinas sin RMM"
 !           Write(*,*) "En antes", En
 	   WRITE(*,*) "usando int1_new"
-           call int1_new(En)
+           call int1_new(En) !testeada
 !           Write(*,*) "En despues", En
 !           call COMPARE_VEC(Fock_Overlap,MM,M5, "SyF-M5")
 	   call COPY_VEC(Fock_Overlap,MM,M5) !Copia a RMM, luego sacare esta parte, Nick            
@@ -245,8 +247,8 @@
 !          call intsol(E1s,Ens,.true.)
 
           IF (break_rmm) THEN
-		WRITE(*,*) "usando intsol_new not tested yet"
-             call intsol_new(E1s,Ens,.true.)
+		WRITE(*,*) "usando intsol_new"
+             call intsol_new(E1s,Ens,.true.) !testeada!!!
              call COPY_VEC(Fock_Overlap,MM,M5) !Copia a RMM, luego sacare esta parte, Nick            
              call COPY_VEC(Fock_Hcore,MM,M11)
           ELSE
@@ -257,6 +259,7 @@
 
           call g2g_timer_stop('intsol')
         else
+		IF (break_rmm) stop "rutinas no editadas aun en GPU"
           call aint_qmmm_init(nsol,r,pc)
           call g2g_timer_start('aint_qmmm_fock')
           call aint_qmmm_fock(E1s,Ens)
@@ -316,11 +319,30 @@
       endif
 !
 ! Precalculate two-index (density basis) "G" matrix used in density fitting
-! here (S_ij in Dunlap, et al JCP 71(8) 1979) into RMM(M7)
+! here (S_ij in Dunlap, et al JCP 71(8) 1979, pg 3398, ec 3.8) into RMM(M7)
 ! Also, pre-calculate G^-1 if G is not ill-conditioned into RMM(M9)
 !
       call g2g_timer_sum_start('Coulomb G matrix')
-      call int2()
+!      call int2()
+
+      IF (break_rmm) THEN
+         WRITE(*,*) "usando int2_new"
+         call int2_new()
+         call COPY_VEC(Density_fitting_G,MMd,M7) !Copia a RMM, luego sacare esta parte, Nick            
+         call COPY_VEC(Density_fitting_Gm,MMd,M9)
+      ELSE
+         call int2()
+      END IF
+
+	do i=1, MMd
+		write(33,*) RMM(M7+i-1)
+	end do
+
+	do i=1, MMd
+                write(34,*) RMM(M9+i-1)
+        end do
+
+
       call g2g_timer_sum_stop('Coulomb G matrix')
 !
 !*
@@ -384,7 +406,6 @@
 
 ! Fit density basis to current MO coeff and calculate Coulomb F elements
 !
-
 !-------------------------------------------------------------------
 ! Test for NaN
         if (Dbug) call SEEK_NaN(RMM,1,MM,"RHO Start")
@@ -393,6 +414,7 @@
             call g2g_timer_sum_start('Coulomb fit + Fock')
             call int3lu(E2) ! Computes Coulomb part of Fock, and energy on E2
             call g2g_timer_sum_pause('Coulomb fit + Fock')
+
 !-------------------------------------------------------------------
 ! Test for NaN
         if (Dbug) call SEEK_NaN(RMM,1,MM,"RHO Coulomb")
@@ -402,6 +424,7 @@
             call g2g_solve_groups(0,Ex,0) ! XC integration / Fock elements
             call g2g_timer_sum_pause('Exchange-correlation Fock')
 !-------------------------------------------------------------------
+
 ! Test for NaN
         if (Dbug) call SEEK_NaN(RMM,1,MM,"RHO Ex-Corr")
         if (Dbug) call SEEK_NaN(RMM,M5-1,M5-1+MM,"FOCK Ex-Corr")
@@ -422,7 +445,6 @@
         enddo
         call g2g_timer_sum_pause('Fock integrals')
         call g2g_timer_sum_start('SCF acceleration')
-
 
 #ifdef CUBLAS
         call obtain_new_P(niter, DAMP, dovv, fockbias, good, xnano, znano, devPtrX, devPtrY)

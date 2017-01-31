@@ -466,6 +466,7 @@ c
          k=j+(Md*2-i)*(i-1)/2
         endif
         XX(i,j)=RMM(M7+k-1)
+c	write(25,*) RMM(M7+k-1)     hasta aca esta bien, Nick
  216   continue
 c
 c
@@ -480,6 +481,15 @@ c
       MMp=Md*(Md+1)/2
       do 199 k=1,MMp
  199   RMM(M9+k-1)=0.0D0
+
+c test, Nick hasta aca ok
+c        do k=1,MMp
+c           write(65,*) RMM(M7+k-1), RMM(M9+k-1)
+c        end do
+
+
+
+
 c
 c     M10=M9+Md
       M10=M9+MMd+MM+1
@@ -517,6 +527,14 @@ c      call dgelss(Md,Md,1,XX,Md,aux,Md,RMM(M9),rcond,irank,dgelss_temp,
 c     >            Md5,info)
 c      deallocate(dgelss_temp)
 
+
+c test, Nick
+        do k=1,MMp
+           write(63,*) RMM(M7+k-1), RMM(M9+k-1)
+        end do
+
+
+
       call g2g_timer_sum_start('G condition')
 #ifdef magma
       call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1,
@@ -527,6 +545,13 @@ c      deallocate(dgelss_temp)
 #endif
       Md5=RMM(M10)
       allocate(dgelss_temp(Md5))
+
+c test, Nick
+        do k=1,MMp
+           write(64,*) RMM(M7+k-1), RMM(M9+k-1)
+        end do
+
+
 #ifdef magma
       call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1,
      >            dgelss_temp,Md5,XXX,info)
@@ -534,10 +559,18 @@ c      deallocate(dgelss_temp)
       call dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1,
      >            dgelss_temp,Md5,XXX,info)
 #endif
+
+c test, Nick
+        do k=1,MMp
+           write(65,*) RMM(M7+k-1), RMM(M9+k-1)
+        end do
+
+
+
       deallocate(dgelss_temp)
 
       ss=RMM(M9)/RMM(M9+Md-1)
-
+	write(*,*) "ss vale", ss
 c
 #endif
 c	write (*,*) ss, "criterio ajuste base auxiliar, Nick"
@@ -631,6 +664,12 @@ c
  900  format('SWITCHING TO SVD rcond=',D10.3)
 c
 c-------------------------------------------------------------------
+c test, Nick
+        do k=1,MMp
+           write(70,*) RMM(M7+k-1), RMM(M9+k-1)
+        end do
+
+
       return
       end
 

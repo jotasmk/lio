@@ -24,7 +24,7 @@
 ! G matrix should be inverted,
 ! later on, for evaluating  Coulomb terms
 !-----------------------------------------------------------------
-      subroutine int2()
+      subroutine int2_new()
        use garcha_mod
 !
       implicit real*8 (a-h,o-z)
@@ -71,7 +71,7 @@
 !
 ! end ------------------------------------------------
       do 1 k=1,MMd
- 1      RMM(M7+k-1)=0.D0
+ 1      Density_fitting_G(k)=0.D0
 !
 !--- 2 index electron repulsion for density basis set
 !
@@ -97,7 +97,7 @@
       s0s=pi5/t1*FUNCT(0,u)
 !
       k=i+((Md2-j)*(j-1))/2
-      RMM(M7+k-1)=RMM(M7+k-1)+ccoef*s0s
+      Density_fitting_G(k)=Density_fitting_G(k)+ccoef*s0s
 !
  200  continue
 !
@@ -140,7 +140,7 @@
 ! ii index , taking into account different components of the shell
 !
         k=iii+((Md2-j)*(j-1))/2
-        RMM(M7+k-1)=RMM(M7+k-1)+tn*ccoef
+        Density_fitting_G(k)=Density_fitting_G(k)+tn*ccoef
  305   continue
  300   continue
 !
@@ -194,7 +194,7 @@
 !      eliminated
        if(iii.ge.jj) then
        k=iii+((Md2-jj)*(jj-1))/2
-       RMM(M7+k-1)=RMM(M7+k-1)+tn*ccoef
+       Density_fitting_G(k)=Density_fitting_G(k)+tn*ccoef
        endif
  405  continue
 !
@@ -247,7 +247,7 @@
 !
        cc=ccoef/f1
        k=iii+((Md2-j)*(j-1))/2
-       RMM(M7+k-1)=RMM(M7+k-1)+tn*cc
+       Density_fitting_G(k)=Density_fitting_G(k)+tn*cc
  505  continue
 !
  500  continue
@@ -320,7 +320,7 @@
        cc=ccoef/f1
 !
        k=iii+((Md2-jj)*(jj-1))/2
-       RMM(M7+k-1)=RMM(M7+k-1)+tn*cc
+       Density_fitting_G(k)=Density_fitting_G(k)+tn*cc
  605  continue
 !
  600  continue
@@ -445,7 +445,7 @@
 !      this to convert to 1 dimensional array, in diagonal case
        k=iii+(Md2-jj)*(jj-1)/2
 !
-       RMM(M7+k-1)=RMM(M7+k-1)+tn*cc
+       Density_fitting_G(k)=Density_fitting_G(k)+tn*cc
  705  continue
 !
  700  continue
@@ -460,7 +460,8 @@
          else
          k=j+(Md*2-i)*(i-1)/2
         endif
-        XX(i,j)=RMM(M7+k-1)
+        XX(i,j)=Density_fitting_G(k)
+!	write(25,*) Density_fitting_G(k) hasta aca esta bien, Nick
  216   continue
 !
 !
@@ -469,22 +470,32 @@
       do 112 i=j,Md
        kk=kk+1
        tmp=XX(i,j)
-       RMM(M7+kk-1)=tmp
+       Density_fitting_G(kk)=tmp
  112  continue
 !
       MMp=Md*(Md+1)/2
       do 199 k=1,MMp
- 199   RMM(M9+k-1)=0.0D0
+ 199   Density_fitting_Gm(k)=0.0D0
+
+
+!Test, Nick hasta aca ok
+!	do k=1,MMp
+!	   write(65,*) Density_fitting_G(k), Density_fitting_Gm(k)
+!	end do
+
+
 !
 !     M10=M9+Md
-      M10=M9+MMd+MM+1
-      M12=M10+Md
+      M10=M9+MMd+MM+1  !esto seria la posicion M13 definida en SCF contiene W, Nick
+      M12=M10+Md !no cae en ninguna posicion definida en SCF
       Md3=3*Md
 ! ESSL OPTION ------------------------------
 #ifdef essl
-      CALL DGESVF(10,XX,Md,RMM(M9),Md,1,RMM(M10), &
+      CALL DGESVF(10,XX,Md,Density_fitting_Gm,Md,1,RMM(M10), &
                    Md,Md,RMM(M12),Md3)
-!
+	write(*,*) "int2 test1"
+!por aca no esta pasando, testear luego, Nick
+
        ss=RMM(M10)/RMM(M10+Md-1)
 !
 #endif
@@ -512,27 +523,54 @@
 !     >            Md5,info)
 !      deallocate(dgelss_temp)
 
-      call g2g_timer_sum_start('G condition') &
+
+!Test, Nick aca pincho en Density_fitting_Gm
+       do k=1,MMp
+          write(63,*) Density_fitting_G(k), Density_fitting_Gm(k)
+       end do
+
+      call g2g_timer_sum_start('G condition') 
 #ifdef  magma
+	write(*,*) "int2 mal"
       call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
                   RMM(M10),-1,XXX,info)
 #else
-      call dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
-                  RMM(M10),-1,XXX,info) &
+	write(*,*) "int2 test2"
+      call dgesdd('N',Md,Md,XX,Md,Density_fitting_Gm(1),0,1,0,1, &
+                  RMM(M10),-1,XXX,info) 
+
 #endif
+
+!Test, Nick aca pincho en Density_fitting_Gm
+       do k=1,MMp
+          write(64,*) Density_fitting_G(k), Density_fitting_Gm(k)
+       end do
+
+
+
       Md5=RMM(M10)
-      allocate(dgelss_temp(Md5)) &
+      allocate(dgelss_temp(Md5)) 
 #ifdef  magma
+	write(*,*) "int2 mal"
       call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
                   dgelss_temp,Md5,XXX,info)
 #else
-      call dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
-                  dgelss_temp,Md5,XXX,info) &
+	write(*,*) "int2, test3"
+
+      call dgesdd('N',Md,Md,XX,Md,Density_fitting_Gm(1),0,1,0,1, &
+                  dgelss_temp,Md5,XXX,info) 
 #endif
       deallocate(dgelss_temp)
 
-      ss=RMM(M9)/RMM(M9+Md-1)
+!Test, Nick aca pincho en Density_fitting_Gm
+       do k=1,MMp
+          write(65,*) Density_fitting_G(k), Density_fitting_Gm(k)
+       end do
 
+
+!      ss=RMM(M9)/RMM(M9+Md-1)
+       ss=Density_fitting_Gm(1)/Density_fitting_Gm(Md-1)
+	write(*,*) "ss vale", ss
 !
 #endif
 !      write (*,*) ss, "criterio ajuste base auxiliar, Nick"
@@ -574,7 +612,7 @@
          else
          k=j+(Md*2-i)*(i-1)/2
         endif
-        XX(i,j)=RMM(M7+k-1)
+        XX(i,j)=Density_fitting_G(k)
       enddo
       enddo
 
@@ -595,37 +633,28 @@
       call dsytrf('U',Md,XX,Md,XXX,dgelss_temp,Md5,info)
       deallocate(dgelss_temp)
 
-!      call dpptri('U',Md,RMM(M9), info)
       call dsytri('U',Md,XX,Md,XXX,inv_work,info)
 
-!      call dppdi(RMM(M9),Md,det,1)
-!
-!      kk=0
-!      do 314 j=1,Md
-!      do 314 i=1,j
-!      kk=kk+1
-!      kx=j+(2*Md-i)*(i-1)/2-1
-!       RMM(M15+kx)=RMM(M9+kk-1)
-! 314  continue
-!
-!      do 315 kk=1,MMp
-!
-! 315   RMM(M9+kk-1)=RMM(M15+kk-1)
-!
       do i=1,Md
       do j=1,i
         k=i+(Md*2-j)*(j-1)/2
-        RMM(M9+k-1) = XX(j,i)
+        Density_fitting_G(k) = XX(j,i)
       enddo
       enddo
 
-      call g2g_timer_sum_stop('G invert') &
+      call g2g_timer_sum_stop('G invert') 
 #endif
 !
       endif
  900  format('SWITCHING TO SVD rcond=',D10.3)
 !
 !-------------------------------------------------------------------
+
+       do k=1,MMp
+          write(70,*) Density_fitting_G(k), Density_fitting_Gm(k)
+       end do
+
+
       return
-      end int2
+      end subroutine int2_new
 

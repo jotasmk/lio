@@ -796,35 +796,6 @@
 !
  700  continue
 
-!
-!
-!--- Debugging and tests -----------------------------------------------
-!
-!         E1=0.D0
-
-!        do 802 k=1,MM
-! 802     E1=E1+RMM(k)*Fock_Hcore(k)
-!
-!      write(*,*) 'E1+En =',E1+En
-!
-
-
-! BSSE ------------
-!      if (BSSE) then
-!      do i=1,natom
-!       Iz(i)=Iaux(i)
-!      enddo
-!      endif
-!
-!--------------------------
-!     write(*,*) 'matriz overlap'
-!     do i=1,MM
-!      write(*,*) i,RMM(M5+i-1)
-!     enddo
-!     do i=1,natom
-!      write(*,*) i,r(i,1),r(i,2),r(i,3)
-!     enddo
-!     pause
       do i=1,M
         Smat(i,i)=Smat(i,i)/2
       enddo

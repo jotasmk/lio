@@ -160,6 +160,8 @@ c      parameter rmintsol=16.0D0
 	logical :: break_rmm
 !-Arrays that going to reemplaze RMM
       real*8, dimension (:), ALLOCATABLE :: Fock_Hcore !contains core-Hamiltonian matrix, reemplaze RMM(M11)
+      real*8, dimension (:), ALLOCATABLE :: Density_fitting_G ! contains S_ij in Dunlap, et al JCP 71(8) 1979, pg 3398, ec 3.8, reemplaze RMM(M7)
+      real*8, dimension (:), ALLOCATABLE :: Density_fitting_Gm !contains Density_fitting_G^-1 reemplaze RMM(M9)
       real*8, dimension (:), ALLOCATABLE :: Fock_Overlap ! reemplaze RMM(M5)
       real*8, dimension (:), ALLOCATABLE :: P_density ! reemplaze RMM(M1)
 
