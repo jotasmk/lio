@@ -613,6 +613,10 @@ c
          k=j+(Md*2-i)*(i-1)/2
         endif
         XX(i,j)=RMM(M7+k-1)
+
+	write(68,*) XX(i,j),RMM(M7+k-1)
+
+
       enddo
       enddo
 
@@ -630,11 +634,35 @@ c      call dppco(RMM(M9),Md,rcond,aux,info)
       call dsytrf('U',Md,XX,Md,XXX,RMM(M10),-1,info)
       Md5=RMM(M10)
       allocate(dgelss_temp(Md5))
+
+      do i=1,Md
+      do j=1,Md
+        write(80,*) XX(j,i)
+      end do
+      end do
+
+
       call dsytrf('U',Md,XX,Md,XXX,dgelss_temp,Md5,info)
       deallocate(dgelss_temp)
 
+
+      do i=1,Md
+      do j=1,Md
+        write(81,*) XX(j,i)
+      end do
+      end do
+
 c      call dpptri('U',Md,RMM(M9), info)
       call dsytri('U',Md,XX,Md,XXX,inv_work,info)
+
+
+
+
+      do i=1,Md
+      do j=1,Md
+        write(82,*) XX(j,i)
+      end do
+      end do
 
 c      call dppdi(RMM(M9),Md,det,1)
 c

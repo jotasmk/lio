@@ -138,7 +138,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
                            remove_zero_weights, min_points_per_cube,           &
                            max_function_exponent, sphere_radius, M, Md,        &
                            Fock_Hcore, Fock_Overlap, P_density,                &
-                           Density_fitting_G, Density_fitting_Gm
+                           Density_fitting_G, Density_fitting_Gm, Eigenvalues
                          
     use ECP_mod,    only : Cnorm, ecpmode
 
@@ -203,7 +203,8 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
 ! reemplazos de RMM
     MM=M*(M+1)/2
     MMd=Md*(Md+1)/2
-    allocate(Fock_Hcore(MM), Fock_Overlap(MM), P_density(MM), Density_fitting_G(MMd), Density_fitting_Gm(MMd))
+    allocate(Fock_Hcore(MM), Fock_Overlap(MM), P_density(MM),                 &
+    Density_fitting_G(MMd), Density_fitting_Gm(MMd),Eigenvalues(M))
 
 
     return 

@@ -36,17 +36,17 @@
       dimension Q(3),aux(ngd),Det(2)
       real, dimension (:), ALLOCATABLE :: trabajo
 !
+#ifdef essl
+      real*8, dimension (3*Md) :: scr
+#endif
+
+
       if (NORM) then
       sq3=sqrt(3.D0)
       else
       sq3=1.D0
       endif
 !
-!      do 50 i=1,natom
-!      do 50 j=1,natom
-!       d(i,j)=(r(i,1)-r(j,1))**2+(r(i,2)-r(j,2))**2+
-!     >        (r(i,3)-r(j,3))**2
-! 50   continue
 !
       nsd=nshelld(0)
       npd=nshelld(1)
@@ -55,7 +55,6 @@
       M2=2*M
       MM=M*(M+1)/2
       MMd=Md*(Md+1)/2
-
 !
 ! pointers
       M1=1 ! first P
@@ -461,7 +460,6 @@
          k=j+(Md*2-i)*(i-1)/2
         endif
         XX(i,j)=Density_fitting_G(k)
-!	write(25,*) Density_fitting_G(k) hasta aca esta bien, Nick
  216   continue
 !
 !
@@ -476,26 +474,15 @@
       MMp=Md*(Md+1)/2
       do 199 k=1,MMp
  199   Density_fitting_Gm(k)=0.0D0
-
-
-!Test, Nick hasta aca ok
-!	do k=1,MMp
-!	   write(65,*) Density_fitting_G(k), Density_fitting_Gm(k)
-!	end do
-
-
 !
-!     M10=M9+Md
+! ESSL OPTION ------------------------------
+#ifdef essl
       M10=M9+MMd+MM+1  !esto seria la posicion M13 definida en SCF contiene W, Nick
       M12=M10+Md !no cae en ninguna posicion definida en SCF
       Md3=3*Md
-! ESSL OPTION ------------------------------
-#ifdef essl
       CALL DGESVF(10,XX,Md,Density_fitting_Gm,Md,1,RMM(M10), &
-                   Md,Md,RMM(M12),Md3)
-	write(*,*) "int2 test1"
+                   Md,Md,scr(1),Md3)
 !por aca no esta pasando, testear luego, Nick
-
        ss=RMM(M10)/RMM(M10+Md-1)
 !
 #endif
@@ -511,48 +498,24 @@
        Md5=5*Md
       rcond=1.0D-07
 
-!
-! CH - why call dgelss here? We only want the singular values - couldn't just
-! something like dgesvd be called without calculating singular vectors?
-!
-!      call dgelss(Md,Md,1,XX,Md,aux,Md,RMM(M9),rcond,irank,RMM(M10),
-!     >            -1,info)
-!      Md5=RMM(M10)
-!      allocate(dgelss_temp(Md5))
-!      call dgelss(Md,Md,1,XX,Md,aux,Md,RMM(M9),rcond,irank,dgelss_temp,
-!     >            Md5,info)
-!      deallocate(dgelss_temp)
-
-
-!Test, Nick aca pincho en Density_fitting_Gm
-       do k=1,MMp
-          write(63,*) Density_fitting_G(k), Density_fitting_Gm(k)
-       end do
 
       call g2g_timer_sum_start('G condition') 
 #ifdef  magma
 	write(*,*) "int2 mal"
-      call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
-                  RMM(M10),-1,XXX,info)
+      call magmaf_dgesdd('N',Md,Md,XX,Md,Density_fitting_Gm(1),0,1,0,1, &
+                  Eigenvalues(1),-1,XXX,info)
 #else
 	write(*,*) "int2 test2"
       call dgesdd('N',Md,Md,XX,Md,Density_fitting_Gm(1),0,1,0,1, &
-                  RMM(M10),-1,XXX,info) 
+                  Eigenvalues(1),-1,XXX,info) 
 
 #endif
 
-!Test, Nick aca pincho en Density_fitting_Gm
-       do k=1,MMp
-          write(64,*) Density_fitting_G(k), Density_fitting_Gm(k)
-       end do
-
-
-
-      Md5=RMM(M10)
+      Md5=Eigenvalues(1)
       allocate(dgelss_temp(Md5)) 
 #ifdef  magma
 	write(*,*) "int2 mal"
-      call magmaf_dgesdd('N',Md,Md,XX,Md,RMM(M9),0,1,0,1, &
+      call magmaf_dgesdd('N',Md,Md,XX,Md,Density_fitting_Gm(1),0,1,0,1, &
                   dgelss_temp,Md5,XXX,info)
 #else
 	write(*,*) "int2, test3"
@@ -562,18 +525,9 @@
 #endif
       deallocate(dgelss_temp)
 
-!Test, Nick aca pincho en Density_fitting_Gm
-       do k=1,MMp
-          write(65,*) Density_fitting_G(k), Density_fitting_Gm(k)
-       end do
-
-
-!      ss=RMM(M9)/RMM(M9+Md-1)
-       ss=Density_fitting_Gm(1)/Density_fitting_Gm(Md-1)
-	write(*,*) "ss vale", ss
+       ss=Density_fitting_Gm(1)/Density_fitting_Gm(Md)
 !
 #endif
-!      write (*,*) ss, "criterio ajuste base auxiliar, Nick"
        if (ss.gt.1.D14) then
         SVD=.true.
       stop "trata de usar SVD"
@@ -613,32 +567,24 @@
          k=j+(Md*2-i)*(i-1)/2
         endif
         XX(i,j)=Density_fitting_G(k)
+
+
       enddo
       enddo
 
-!      kk=0
-!      do 313 j=1,Md
-!       do 313 i=1,j
-!       kk=kk+1
-!       kx=M7+j+(2*Md-i)*(i-1)/2-1
-!       RMM(M9+kk-1)=RMM(kx)
-!
-! 313  continue
-!
+      call dsytrf('U',Md,XX,Md,XXX,Eigenvalues(1),-1,info)
+      Md5=Eigenvalues(1)
 
-!      call dppco(RMM(M9),Md,rcond,aux,info)
-      call dsytrf('U',Md,XX,Md,XXX,RMM(M10),-1,info)
-      Md5=RMM(M10)
+
       allocate(dgelss_temp(Md5))
       call dsytrf('U',Md,XX,Md,XXX,dgelss_temp,Md5,info)
       deallocate(dgelss_temp)
-
       call dsytri('U',Md,XX,Md,XXX,inv_work,info)
 
       do i=1,Md
       do j=1,i
         k=i+(Md*2-j)*(j-1)/2
-        Density_fitting_G(k) = XX(j,i)
+        Density_fitting_Gm(k) = XX(j,i)
       enddo
       enddo
 
@@ -649,12 +595,6 @@
  900  format('SWITCHING TO SVD rcond=',D10.3)
 !
 !-------------------------------------------------------------------
-
-       do k=1,MMp
-          write(70,*) Density_fitting_G(k), Density_fitting_Gm(k)
-       end do
-
-
       return
       end subroutine int2_new
 
