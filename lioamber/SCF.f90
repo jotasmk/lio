@@ -1566,3 +1566,136 @@
 	END SUBROUTINE COPY_VEC
 
 
+        SUBROUTINE puttakeallRMM(order)
+!subrutina temporal para test de codigo
+!order=1 arrays --> RMM
+!order =-1 RMM -- > arrays
+        use garcha_mod, ONLY: RMM, Eigenvalues,Fock_Hcore,Density_fitting_G,Density_fitting_Gm,Fock_Overlap,P_density, M, Md, natom, Nang, Molecular_Orbitals, Auxiliar_vec, NCO
+
+        integer, intent(in) :: order
+        integer :: i, M1, M3, M5, M7, M9, M11, M13, M15, M17, M18, M19, M20, MM, MMd
+
+      MM=M*(M+1)/2
+      MMd=Md*(Md+1)/2
+
+
+
+        M1=1 ! first P
+        M3=M1+MM ! now Pnew
+        M5=M3+MM! now S, F also uses the same position after S was used
+        M7=M5+MM! now G
+        M9=M7+MMd ! now Gm
+        M11=M9+MMd! now H
+        M13=M11+MM! W ( eigenvalues ), also this space is used in least squares
+        M15=M13+M! aux ( vector for ESSl)
+        M17=M15+MM! Least squares
+        M18=M17+MMd! vectors of MO
+        M19=M18+M*NCO! weights (in case of using option )
+        M20 = M19 + natom*50*Nang ! RAM storage of two-electron integrals (if MEMO=T)
+
+
+        if (order**2 .ne. 1) STOP "wrong order value"
+
+        if (order .eq. 1) then
+          do i=1, MM
+            RMM(i)=P_density(i)
+            RMM(i+M5-1)=Fock_Overlap(i)
+            RMM(i+M11-1)=Fock_Hcore(i)
+            RMM(i+M15-1)=Auxiliar_vec(i)
+          end do
+          do i=1, M
+            RMM(i+M13-1)=Eigenvalues(i)
+          end do
+          do i=1, MMd
+            RMM(i+M7-1)=Density_fitting_G(i)
+            RMM(i+M9-1)=Density_fitting_Gm(i)
+          end do
+          do i=1, M*NCO
+            RMM(i+M18-1)=Molecular_Orbitals(i)
+          end do
+        end if
+
+        if (order .eq. -1) then
+          do i=1, MM
+            P_density(i)=RMM(i)
+            Fock_Overlap(i)=RMM(i+M5-1)
+            Fock_Hcore(i)=RMM(i+M11-1)
+            Auxiliar_vec(i)=RMM(i+M18-1)
+          end do
+          do i=1, M
+            Eigenvalues(i)=RMM(i+M13-1)
+          end do
+          do i=1, MMd
+            Density_fitting_G(i)=RMM(i+M7-1)
+            Density_fitting_Gm(i)=RMM(i+M9-1)
+          end do
+          do i=1, M*NCO
+            Molecular_Orbitals(i)=RMM(i+M18-1)
+          end do
+        end if
+
+        return
+        END SUBROUTINE puttakeallRMM
+
+	SUBROUTINE check_RMM_changes
+!subrutina temporal para test de codigo
+!order=1 arrays --> RMM
+!order =-1 RMM -- > arrays
+        use garcha_mod, ONLY: RMM, Eigenvalues,Fock_Hcore,Density_fitting_G,Density_fitting_Gm,Fock_Overlap,P_density, M, Md, natom, Nang, Molecular_Orbitals, Auxiliar_vec, NCO
+	IMPLICIT NONE
+        integer :: i, M1, M3, M5, M7, M9, M11, M13, M15, M17, M18, M19, M20, MM, MMd
+	logical :: Chan_P_density,Chan_Fock_Overlap,Chan_Fock_Hcore,Chan_Auxiliar_vec,Chan_Eigenvalues,Chan_Density_fitting_G,Chan_Density_fitting_Gm,Chan_Molecular_Orbitals
+
+	Chan_P_density=.false.
+	Chan_Fock_Overlap=.false.
+	Chan_Fock_Hcore=.false.
+	Chan_Auxiliar_vec=.false.
+	Chan_Eigenvalues=.false.
+	Chan_Density_fitting_G=.false.
+	Chan_Density_fitting_Gm=.false.
+	Chan_Molecular_Orbitals=.false.
+
+        MM=M*(M+1)/2
+        MMd=Md*(Md+1)/2
+
+        M1=1 ! first P
+        M3=M1+MM ! now Pnew
+        M5=M3+MM! now S, F also uses the same position after S was used
+        M7=M5+MM! now G
+        M9=M7+MMd ! now Gm
+        M11=M9+MMd! now H
+        M13=M11+MM! W ( eigenvalues ), also this space is used in least squares
+        M15=M13+M! aux ( vector for ESSl)
+        M17=M15+MM! Least squares
+        M18=M17+MMd! vectors of MO
+        M19=M18+M*NCO! weights (in case of using option )
+        M20 = M19 + natom*50*Nang ! RAM storage of two-electron integrals (if MEMO=T)
+
+          do i=1, MM
+            if (P_density(i) .ne. RMM(i)) Chan_P_density=.true.
+            if (Fock_Overlap(i) .ne. RMM(i+M5-1)) Chan_Fock_Overlap=.true.
+            if (Fock_Hcore(i) .ne. RMM(i+M11-1)) Chan_Fock_Hcore=.true.
+            if (Auxiliar_vec(i) .ne. RMM(i+M18-1)) Chan_Auxiliar_vec=.true.
+          end do
+          do i=1, M
+            if (Eigenvalues(i) .ne. RMM(i+M13-1)) Chan_Eigenvalues=.true.
+          end do
+          do i=1, MMd
+            if (Density_fitting_G(i) .ne. RMM(i+M7-1)) Chan_Density_fitting_G=.true.
+            if (Density_fitting_Gm(i) .ne. RMM(i+M9-1)) Chan_Density_fitting_Gm=.true.
+          end do
+          do i=1, M*NCO
+            if (Molecular_Orbitals(i) .ne. RMM(i+M18-1)) Chan_Molecular_Orbitals=.true.
+          end do
+
+
+        if(Chan_P_density) write(*,*) "P_density NE"
+        if(Chan_Fock_Overlap) write(*,*) "Fock_Overlap NE"
+        if(Chan_Fock_Hcore) write(*,*) "Fock_Hcore NE"
+        if(Chan_Auxiliar_vec) write(*,*) "Auxiliar_vec NE"
+        if(Chan_Eigenvalues) write(*,*) "Eigenvalues NE"
+        if(Chan_Density_fitting_G) write(*,*) "Density_fitting_G NE"
+        if(Chan_Density_fitting_Gm) write(*,*) "Density_fitting_Gm NE"
+        if(Chan_Molecular_Orbitals) write(*,*) "Molecular_Orbitals NE"
+	END SUBROUTINE check_RMM_changes
+

@@ -131,14 +131,18 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
                            allnml, style, free_global_memory, little_cube_size,&
                            assign_all_functions, energy_all_iterations,        &
                            remove_zero_weights, min_points_per_cube,           &
-                           max_function_exponent, sphere_radius, M,Fock_Hcore, &
-                           Fock_Overlap, P_density
+                           max_function_exponent, sphere_radius, M, Md,        &
+                           Fock_Hcore, Fock_Overlap, P_density,                &
+                           Density_fitting_G, Density_fitting_Gm, Eigenvalues, &
+                           Molecular_Orbitals, Auxiliar_vec
+
+
                          
     use ECP_mod,    only : Cnorm, ecpmode
 
     implicit none
     integer , intent(in) :: charge, nclatom, natomin, Izin(natomin), callfrom
-    integer              :: i, ng2, ng3, ngdDyn, ngDyn, nqnuc, ierr, ios, MM
+    integer              :: i, ng2, ng3, ngdDyn, ngDyn, nqnuc, ierr, ios, MM, MMd
 
 !    call g2g_timer_start('lio_init')
 
@@ -164,12 +168,20 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
           Ngrid
     ng3 = 4*ngDyn
 
-    allocate(X(ngDyn,ng3)  , XX(ngdDyn,ngdDyn) , RMM(ng2)    , d(natom, natom),&
+    allocate(X(ngDyn,ng3)  , XX(ngdDyn,ngdDyn) , d(natom, natom),              &
              c(ngDyn,nl)   , a(ngDyn,nl)       , Nuc(ngDyn)  , ncont(ngDyn)   ,&
              cx(ngdDyn,nl) , ax(ngdDyn,nl)     , Nucx(ngdDyn), ncontx(ngdDyn) ,&
              cd(ngdDyn,nl) , ad(ngdDyn,nl)     , Nucd(ngdDyn), ncontd(ngdDyn) ,&
              indexii(ngDyn), indexiid(ngdDyn)  , v(ntatom,3) , Em(ntatom)     ,&
              Rm(ntatom)    , af(ngdDyn)        , nnat(200)   , B(ngdDyn,3))
+
+    allocate(RMM(ng2)) ! hay q sacarlo, Nick
+! reemplazos de RMM
+    MM=ngDyn*(ngDyn+1)/2
+    MMd=ngdDyn*(ngdDyn+1)/2
+    allocate(P_density(MM))
+    P_density=0.d0
+
 
     ! Cnorm contains normalized coefficients of basis functions.
     ! Differentiate C for x^2,y^2,z^2 and  xy,xz,yx (3^0.5 factor)
@@ -191,12 +203,23 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
     if (style) call LIO_LOGO()
     if (style) call NEW_WRITE_NML(charge)
 
-    call drive(ng2, ngDyn, ngdDyn)
+    call drive(ng2, ngDyn, ngdDyn)  !se puede eleminar el calculo de M y Md de drive ya que son ngDyn,ngdDyn calculados en DIM drive
 !    call g2g_timer_stop('lio_init')
 
 ! reemplazos de RMM
-    MM=M*(M+1)/2
-    allocate(Fock_Hcore(MM), Fock_Overlap(MM), P_density(MM))
+    allocate(Fock_Hcore(MM), Fock_Overlap(MM), Density_fitting_G(MMd),         &
+    Density_fitting_Gm(MMd),Eigenvalues(M), Molecular_Orbitals(M*NCO),         &
+    Auxiliar_vec(MM))
+
+    Fock_Hcore=0.d0
+    Fock_Overlap=0.d0
+    Density_fitting_G=0.d0
+    Density_fitting_Gm=0.d0
+    Eigenvalues=0.d0
+    Molecular_Orbitals=0.d0
+    Auxiliar_vec=0.d0
+
+
 
     return 
 end subroutine init_lio_common
