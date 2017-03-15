@@ -25,7 +25,16 @@
        deallocate(r,v,rqm, Em, Rm)
        deallocate(pc, Iz, cx, ax, cd, ad, c, a)
       deallocate(Nuc,ncont,Nucx,ncontx,Nucd
-     > ,ncontd, indexii, indexiid, RMM, X, XX)
+     > ,ncontd, indexii, indexiid, X, XX)
+
+!hay q eliminar este desalocate al final, Nick
+      deallocate(RMM)
+
+
+       deallocate(Fock_Hcore, Fock_Overlap, P_density,
+     > Density_fitting_G, Density_fitting_Gm,Eigenvalues,
+     > Molecular_Orbitals, Auxiliar_vec)
+
        deallocate(nnat, B, af)
        deallocate(natomc,nnps,nnpp,nnpd,nns)
        deallocate(nnd,nnp,atmin,jatc,d)

@@ -34,29 +34,15 @@
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !
        allocate(s0s(natom),s1s(natom),s2s(natom))
-!       allocate(s3s(natom),s4s(natom),Iaux(natom))
        allocate(s3s(natom))
        allocate(s4s(natom))
-!       allocate(Iaux(natom))
        if (.not.allocated(Smat)) allocate(Smat(M,M))
 
-!-----distance between pairs of centers
-!
-! --- BSSE------------------------------------
-!      sets to 0 atomic charges, but since they are used to
-!      construct the grids, they are stored in an auxiliar array
-!      if (BSSE) then
-!      do i=1,natom
-!       Iaux(i)=Iz(i)
-!       Iz(i)=Iz(i)*ighost(i)
-!      enddo
-!      endif
-!----------------------------------------------
 
       if (NORM) then
-      sq3=sqrt(3.D0)
+        sq3=sqrt(3.D0)
       else
-      sq3=1.D0
+        sq3=1.D0
       endif
       ns=nshell(0)
       np=nshell(1)
@@ -64,14 +50,7 @@
       MM=M*(M+1)/2
       MMd=Md*(Md+1)/2
       M2=2*M
-!
-! Pointers
-      M1=1 ! first P
-      M3=M1+MM ! now Pnew
-      M5=M3+MM ! now S, F also uses the same position after S was used
-      M7=M5+MM ! now G
-      M9=M7+MMd ! now Gm
-      M11=M9+MMd ! now H
+
 !---- Overlap ,Kinetic energy and Nuclear Attraction
 !      matrix elements evaluation
 ! Overlap matrix will be kept, kinetic energy and nuclear attraction
@@ -796,35 +775,6 @@
 !
  700  continue
 
-!
-!
-!--- Debugging and tests -----------------------------------------------
-!
-!         E1=0.D0
-
-!        do 802 k=1,MM
-! 802     E1=E1+RMM(k)*Fock_Hcore(k)
-!
-!      write(*,*) 'E1+En =',E1+En
-!
-
-
-! BSSE ------------
-!      if (BSSE) then
-!      do i=1,natom
-!       Iz(i)=Iaux(i)
-!      enddo
-!      endif
-!
-!--------------------------
-!     write(*,*) 'matriz overlap'
-!     do i=1,MM
-!      write(*,*) i,RMM(M5+i-1)
-!     enddo
-!     do i=1,natom
-!      write(*,*) i,r(i,1),r(i,2),r(i,3)
-!     enddo
-!     pause
       do i=1,M
         Smat(i,i)=Smat(i,i)/2
       enddo

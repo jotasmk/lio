@@ -176,6 +176,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
              Rm(ntatom)    , af(ngdDyn)        , nnat(200)   , B(ngdDyn,3))
 
     allocate(RMM(ng2)) ! hay q sacarlo, Nick
+	RMM=0.d0
 ! reemplazos de RMM
     MM=ngDyn*(ngDyn+1)/2
     MMd=ngdDyn*(ngdDyn+1)/2
@@ -199,6 +200,8 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
     enddo
     nco = ((nqnuc - charge) - Nunp)/2
 
+   allocate(Molecular_Orbitals(ngDyn*NCO))
+
 !   Prints LIO logo to output and options chosen for the run. 
     if (style) call LIO_LOGO()
     if (style) call NEW_WRITE_NML(charge)
@@ -208,8 +211,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
 
 ! reemplazos de RMM
     allocate(Fock_Hcore(MM), Fock_Overlap(MM), Density_fitting_G(MMd),         &
-    Density_fitting_Gm(MMd),Eigenvalues(M), Molecular_Orbitals(M*NCO),         &
-    Auxiliar_vec(MM))
+    Density_fitting_Gm(MMd),Eigenvalues(M), Auxiliar_vec(MM))
 
     Fock_Hcore=0.d0
     Fock_Overlap=0.d0
@@ -219,7 +221,8 @@ subroutine init_lio_common(natomin, Izin, nclatom, charge, callfrom)
     Molecular_Orbitals=0.d0
     Auxiliar_vec=0.d0
 
-
+	call check_RMM_changes()
+	Write(*,*) "test 1, paso falta capa abierta y g2g. Nick"
 
     return 
 end subroutine init_lio_common

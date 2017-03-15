@@ -18,7 +18,9 @@
       frestartin, Md, NCO, nng, npas, Nr, used, STR, verbose, omit_bas, Nr2,   &
       wang, wang2, wang3, VCINP, OPEN, OPEN1, whatis, TMP1, TMP2, Num, Iz, pi, &
       Rm2, rqm, rmax, OCC, ATCOEF, Nunp, nl, nt, ng, ngd, restart_freq,        &
-      writexyz, number_restr, restr_pairs,restr_index,restr_k,restr_w,restr_r0
+      writexyz, number_restr, restr_pairs,restr_index,restr_k,restr_w,restr_r0,&
+      P_density, Molecular_Orbitals
+
 
       USE ECP_mod, ONLY : ecpmode, asignacion
 
@@ -983,7 +985,8 @@
           do k=1,NCO
             do i=1,M
              kk=kk+1
-             RMM(M18+kk-1)=XX(indexii(i),k)
+             RMM(M18+kk-1)=XX(indexii(i),k)    !sacar, Nick
+             Molecular_Orbitals(kk)=XX(indexii(i),k)
             enddo
           enddo
 
@@ -998,6 +1001,7 @@
 !c open shell case
         else
 !c
+	stop "openshell in drive.f90 Nick" !openshell aun no implementado
           NCOa=NCO
           NCOb=NCO+Nunp
           M18b=M18+M*NCOa
@@ -1105,12 +1109,14 @@
           do k=1,NCO
             do i=1,M
               kk=kk+1
-              RMM(kk)=XX(i,k) 
+              RMM(kk)=XX(i,k)    !sacar luego
+              P_density(kk)=XX(i,k)
             enddo
           enddo
 !c
         else
 !c
+	stop "open shell 2 in drive.f" !open shell not implemented yet
           NCOa=NCO
           NCOb=NCO+Nunp
           M18b=M18+M*NCOa
@@ -1142,7 +1148,8 @@
       do j=1,M
         do i=j,M
           k=k+1
-          RMM(k)=X(indexii(i),indexii(j))
+          RMM(k)=X(indexii(i),indexii(j))    !sacar luego, Nick
+          P_density(k)=X(indexii(i),indexii(j))
         enddo
       enddo
 !c
@@ -1151,7 +1158,8 @@
         do i=j,M
           k=k+1
           if (i.ne.j) then
-            RMM(k)=RMM(k)*2.D0
+            RMM(k)=RMM(k)*2.D0    !sacar luego, Nick
+	    P_density(k)=P_density(k)*2.D0
           endif
         enddo
       enddo

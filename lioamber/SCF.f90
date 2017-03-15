@@ -14,7 +14,7 @@
       npas, verbose, RMM, X, SHFT, GRAD, npasw, igrid, energy_freq, converge,          &
       noconverge, cubegen_only, cube_dens, cube_orb, cube_elec, VCINP, Nunp, GOLD,     &
       igrid2, predcoef, nsol, r, pc, timedep, tdrestart, DIIS, told, Etold, Enucl,     &
-      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug
+      Eorbs, kkind,kkinds,cool,cools,NMAX,Dbug, Fock_Hcore
 !      use mathsubs
       use ECP_mod, only : ecpmode, term1e, VAAA, VAAB, VBAC, &
        FOCK_ECP_read,FOCK_ECP_write,IzECP
@@ -104,6 +104,7 @@
       npas=npas+1
       E=0.0D0
       E1=0.0D0
+      E1s=0.0D0
       En=0.0D0
       E2=0.0D0
       Es=0.0D0
@@ -140,6 +141,12 @@
       M19=M18+M*NCO! weights (in case of using option )
       M20 = M19 + natom*50*Nang ! RAM storage of two-electron integrals (if MEMO=T)
 
+
+        call check_RMM_changes() !prueba 2
+        Write(*,*) "test 2, paso falta capa abierta y g2g. Nick"
+
+
+
       if (cubegen_only.and.(cube_dens.or.cube_orb.or.cube_elec)) then
         if (.not.VCINP) then
           write(*,*) "cubegen_only CAN ONLY BE USED WITH VCINP"
@@ -164,6 +171,12 @@
         return
       endif
 !
+
+        call check_RMM_changes() !prueba 3
+        Write(*,*) "test 3, paso falta capa abierta y g2g. Nick"
+
+
+
       Nel=2*NCO+Nunp
 !
       allocate(rmm5(MM),rmm15(mm))
@@ -184,6 +197,12 @@
        dovv=.false.
 !----------------------------------------
       call neighbor_list_2e() ! Para hacer lineal la integral de 2 electrone con lista de vecinos. Nano
+
+
+        call check_RMM_changes() !prueba 4
+        Write(*,*) "test 4 paso falta capa abierta y g2g. Nick"
+
+
 
 ! -Create integration grid for XC here
 ! -Assign points to groups (spheres/cubes)
@@ -207,8 +226,17 @@
 !
       call g2g_timer_sum_start('1-e Fock')
       call g2g_timer_sum_start('Nuclear attraction')
+
+        call check_RMM_changes() !prueba 5
+        Write(*,*) "test 5 paso falta capa abierta y g2g. Nick"
+
       call int1(En)
-	
+	call int1_new(En)
+
+
+        call check_RMM_changes() !prueba 6
+        Write(*,*) "test 6 paso falta capa abierta y g2g. Nick"
+
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !%%%%%%%%%%%%%%%    Effective Core Potential Add    %%%%%%%%%%%%%%%%%!
@@ -216,13 +244,21 @@
       if (ecpmode ) then
           write(*,*) "Modifying Fock Matrix with ECP terms"
           do k=1,MM
-               term1e(k)=RMM(M11+k-1) !backup of 1e terms
-               RMM(M11+k-1)=RMM(M11+k-1)+VAAA(k)+VAAB(k)+VBAC(k) !add EC
+               term1e(k)=RMM(M11+k-1) !sacar, Nick
+               RMM(M11+k-1)=RMM(M11+k-1)+VAAA(k)+VAAB(k)+VBAC(k) !sacar, Nick
+
+               term1e(k)=Fock_Hcore(k) !backup of 1e terms
+               Fock_Hcore(k)=Fock_Hcore(k)+VAAA(k)+VAAB(k)+VBAC(k) !add ECP termins
           enddo
       end if
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+
+
+        call check_RMM_changes() !prueba 7
+        Write(*,*) "test 7 paso falta capa abierta y g2g. Nick"
+
 
       call g2g_timer_sum_stop('Nuclear attraction')
       if(nsol.gt.0.or.igpu.ge.4) then
@@ -231,21 +267,34 @@
           call g2g_timer_start('intsol')
           call intsol(E1s,Ens,.true.)
           call g2g_timer_stop('intsol')
+
+          call check_RMM_changes() !prueba 8a
+          Write(*,*) "test 8a"!7 paso falta capa abierta y g2g. Nick"
+
         else
+	write(*,*) "testeando ruptura de RMM sin g2g, no deberia pasar por aca"
+
           call aint_qmmm_init(nsol,r,pc)
           call g2g_timer_start('aint_qmmm_fock')
           call aint_qmmm_fock(E1s,Ens)
           call g2g_timer_stop('aint_qmmm_fock')
+
+          call check_RMM_changes() !prueba 8b
+          Write(*,*) "test 8b"!7 paso falta capa abierta y g2g. Nick"
+
+
         endif
           call g2g_timer_sum_stop('QM/MM')
       endif
 
-!
+! Sacar esto, Nick
 ! test ---------------------------------------------------------
       E1=0.D0
-      do k=1,MM
-        E1=E1+RMM(k)*RMM(M11+k-1)
-      enddo
+!      do k=1,MM
+!        E1=E1+RMM(k)*RMM(M11+k-1)
+!      enddo
+
+
       call g2g_timer_sum_stop('1-e Fock')
 
 !#########################################################################################
@@ -255,6 +304,12 @@
 	call overlap_diag(fockbias, dovv,Y,Ytrans,Xtrans)
 !#########################################################################################
 !#########################################################################################
+
+
+          call check_RMM_changes() !prueba 9
+          Write(*,*) "test 9 paso falta capa abierta y g2g. Nick"
+
+
 
 !! CUBLAS ---------------------------------------------------------------------!
 #ifdef CUBLAS
@@ -276,15 +331,24 @@
 #endif
 !------------------------------------------------------------------------------!
 
+          call check_RMM_changes() !prueba 10
+          Write(*,*) "test 10 paso falta capa abierta y g2g. Nick"
+
+
+
 !############################################################################
 !############################################################################
 	call starting_guess(xnano)
 !############################################################################
 !############################################################################
 
+          call check_RMM_changes() !prueba 11
+          Write(*,*) "test 11"! paso falta capa abierta y g2g. Nick"
+
 !
       if ((timedep.eq.1).and.(tdrestart)) then
         call g2g_timer_sum_start('TD')
+	WRITE(*,*) "testeando ruptura de SCF, no deberia ir a TD aun, nick"
         call TD()
         call g2g_timer_sum_stop('TD')
         return
@@ -297,6 +361,11 @@
       call g2g_timer_sum_start('Coulomb G matrix')
       call int2()
       call g2g_timer_sum_stop('Coulomb G matrix')
+
+          call check_RMM_changes() !prueba 12
+          Write(*,*) "test 12"! paso falta capa abierta y g2g. Nick"
+
+
 !
 !*
 !
@@ -823,7 +892,21 @@
 
 
 	SUBROUTINE starting_guess(xnano)
-	use garcha_mod, ONLY: RMM, ATRHO, VCINP, primera, M, X, Md, NCO
+	use garcha_mod, ONLY: RMM, ATRHO, VCINP, primera, M, X, Md, NCO, Fock_Overlap, Auxiliar_vec, Eigenvalues, Molecular_Orbitals, P_density
+
+
+
+!      real*8, dimension (:), ALLOCATABLE :: Molecular_Orbitals !reemplaze RMM(M18)
+!      real*8, dimension (:), ALLOCATABLE :: Auxiliar_vec ! vector for ESSl, reemplace RMM(M15)
+!      real*8, dimension (:), ALLOCATABLE :: Fock_Hcore !contains core-Hamiltonian matrix, reemplaze RMM(M11)
+!      real*8, dimension (:), ALLOCATABLE :: Eigenvalues !reemplaze RMM(M13) and RMM(M10) in int2.f
+!      real*8, dimension (:), ALLOCATABLE :: Density_fitting_Gm !contains Density_fitting_G^-1 reemplaze RMM(M9)
+!      real*8, dimension (:), ALLOCATABLE :: Density_fitting_G ! contains S_ij in Dunlap, et al JCP 71(8) 1979, pg 3398, ec 3.8, reemplaze RMM(M7)
+!      real*8, dimension (:), ALLOCATABLE :: Fock_Overlap ! reemplaze RMM(M5)
+!      real*8, dimension (:), ALLOCATABLE :: P_density ! reemplaze RMM(M1)
+
+
+
 	IMPLICIT NONE
 	integer :: info
 	real*8, dimension (M,M), intent(inout)::xnano
@@ -833,6 +916,13 @@
 	real*8 :: ff
       call g2g_timer_start('initial guess')
       call g2g_timer_sum_stop('Overlap decomposition')
+
+
+
+
+        call check_RMM_changes() !prueba a1
+        Write(*,*) "test a1"!2, paso falta capa abierta y g2g. Nick"
+
 
       MM=M*(M+1)/2
       MMd=Md*(Md+1)/2
@@ -857,7 +947,7 @@
 ! => (X^-1*C)^-1 * F' * (X^-1*C) = e
 !
 ! Calculate F' in RMM(M5)
-      if((.not.ATRHO).and.(.not.VCINP).and.primera) then
+      if((.not.ATRHO).and.(.not.VCINP).and.primera) then   !creo q este if se puede poner en el call de esta subrutina, ver luego. Nick
         call g2g_timer_sum_start('initial guess')
         primera=.false.
         do i=1,M
@@ -870,16 +960,22 @@
               X(i,M+j)=X(i,M+j)+X(k,i)*RMM(M11+k+(M2-j)*(j-1)/2-1)
             enddo
           enddo
-
         enddo
+
+        call check_RMM_changes() !prueba a2
+        Write(*,*) "test a2, paso falta capa abierta y g2g. Nick"
+
+
 
         kk=0
         do j=1,M
           do i=j,M
             kk=kk+1
-            RMM(M5+kk-1)=0.D0
+            RMM(M5+kk-1)=0.D0    !sacar, Nick
+	    Fock_Overlap(kk)=0.D0
             do k=1,j
-              RMM(M5+kk-1)=RMM(M5+kk-1)+X(i,M+k)*X(k,j)
+              RMM(M5+kk-1)=RMM(M5+kk-1)+X(i,M+k)*X(k,j)   !sacar, Nick
+              Fock_Overlap(kk)=Fock_Overlap(kk)+X(i,M+k)*X(k,j)
             enddo
           enddo
         enddo
@@ -888,24 +984,42 @@
 ! xnano will contain (X^-1)*C
 !
         do i=1,M
-          RMM(M15+i-1)=0.D0
-          RMM(M13+i-1)=0.D0
+          RMM(M15+i-1)=0.D0 !sacar, Nick
+          RMM(M13+i-1)=0.D0 !sacar, Nick
+          Auxiliar_vec=0.D0
+          Eigenvalues=0.D0 
         enddo
 !
 ! ESSL OPTION
         do i=1,MM
-          rmm5(i)=RMM(M5+i-1)
+          rmm5(i)=RMM(M5+i-1)   !sacar, Nick
+          rmm5(i)=Fock_Overlap(i)
         enddo
         rmm15=0
         xnano=0
+
+
+
+        call check_RMM_changes() !prueba a3
+        Write(*,*) "test a3, paso falta capa abierta y g2g. Nick"
+
+
 #ifdef  essl
-        call DSPEV(1,RMM(M5),RMM(M13),X(1,M+1),M,M,RMM(M15),M2)
+        call DSPEV(1,RMM(M5),RMM(M13),X(1,M+1),M,M,RMM(M15),M2) !sacar, Nick
+	call DSPEV(1,Fock_Overlap(1),Eigenvalues(1),X(1,M+1),M,M,Auxiliar_vec(1),M2)
 #endif
 ! LAPACK OPTION -----------------------------------------
 #ifdef pack
 !
         call dspev('V','L',M,RMM5,RMM(M13),Xnano,M,RMM15,info)
+        call dspev('V','L',M,RMM5,Eigenvalues(1),Xnano,M,RMM15,info)
 #endif
+
+
+        call check_RMM_changes() !prueba a4
+        Write(*,*) "test a4"!2, paso falta capa abierta y g2g. Nick"
+
+
 
         do i =1,M
           do j=1,M
@@ -915,7 +1029,8 @@
 !-----------------------------------------------------------
 ! Recover C from (X^-1)*C
         do i=1,MM
-          RMM(M5+i-1)=rmm5(i)
+          RMM(M5+i-1)=rmm5(i) !sacar, Nick
+          Fock_Overlap(i)=rmm5(i)
         enddo
 
         do i=1,M
@@ -935,7 +1050,8 @@
         do k=1,NCO
           do i=1,M
             kk=kk+1
-            RMM(M18+kk-1)=X(i,M2+k)
+            RMM(M18+kk-1)=X(i,M2+k)   !sacar, Nick
+            Molecular_Orbitals(kk)=X(i,M2+k)
           enddo
         enddo
 !
@@ -943,7 +1059,8 @@
         do j=1,M
           do i=j,M
             kk=kk+1
-            RMM(kk)=0.D0
+            RMM(kk)=0.D0   !sacar, nick
+            P_density(kk)=0.D0
 !
 ! one factor of 2 for alpha+beta
             if(i.eq.j) then
@@ -954,7 +1071,8 @@
             endif
 !
             do k=1,NCO
-              RMM(kk)=RMM(kk)+ff*X(i,M2+k)*X(j,M2+k)
+              RMM(kk)=RMM(kk)+ff*X(i,M2+k)*X(j,M2+k)  !sacar, Nick
+              P_density(kk)=P_density(kk)+ff*X(i,M2+k)*X(j,M2+k)
             enddo
           enddo
         enddo
@@ -1697,5 +1815,7 @@
         if(Chan_Density_fitting_G) write(*,*) "Density_fitting_G NE"
         if(Chan_Density_fitting_Gm) write(*,*) "Density_fitting_Gm NE"
         if(Chan_Molecular_Orbitals) write(*,*) "Molecular_Orbitals NE"
+	write(*,*) "all checks done"
+
 	END SUBROUTINE check_RMM_changes
 
