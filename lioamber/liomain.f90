@@ -55,9 +55,12 @@ subroutine liomain(E, dipxyz)
        endif
     endif
 
+
     calc_prop=.false.
     if (MOD(npas, energy_freq).eq.1) calc_prop=.true.
     if (calc_propM) calc_prop=.true.
+    if ((restart_freq.gt.0).and.(MOD(npas, restart_freq).eq.0)) call do_restart(88)
+
 
     ! Perform Mulliken and Lowdin analysis, get fukui functions and dipole.
     if (calc_prop) then
@@ -76,7 +79,7 @@ subroutine liomain(E, dipxyz)
         if (print_coeffs) call write_orbitals(29)
     endif
 
-    if ((restart_freq.gt.0).and.(MOD(npas, restart_freq).eq.0)) call write_restart(88)
+    call g2g_timer_sum_pause("Total")
 
     return
 end subroutine liomain
@@ -241,3 +244,45 @@ subroutine do_fukui()
 end subroutine do_fukui
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+!%% DO_FUKUI %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+! Performs Fukui function calls and printing.                                  !
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+subroutine do_restart(UID)
+   use garcha_mod, only : OPEN, NCO, NUNP, M, MO_coef_at, MO_coef_at_b, indexii
+   use fileio    , only : write_coef_restart
+   implicit none
+   integer, intent(in) :: UID
+   integer             :: NCOb, icount, jcount, coef_ind
+   real*8, allocatable :: coef(:,:), coef_b(:,:)
+
+   allocate(coef(M, NCO))
+   do icount=1, M
+   do jcount=1, NCO
+      coef_ind = icount + M*(jcount-1)
+      coef(indexii(icount), jcount) = MO_coef_at(coef_ind)
+   enddo
+   enddo
+
+
+   if (OPEN) then
+      NCOb = NCO + NUNP
+      allocate(coef_b(M, NCOb))
+
+      do icount=1, M
+      do jcount=1, NCOb
+         coef_ind = icount + M*(jcount-1)
+         coef_b(indexii(icount), jcount) = MO_coef_at_b(coef_ind)
+      enddo
+      enddo
+
+      call write_coef_restart(coef, coef_b, M, NCO, NCOb, UID)
+      deallocate(coef_b)
+   else
+      call write_coef_restart(coef, M, NCO, UID)
+   endif
+
+   deallocate(coef)
+   return
+end subroutine do_restart
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
