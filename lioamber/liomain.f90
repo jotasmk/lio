@@ -11,15 +11,15 @@
 ! * do_population_analysis (performs the analysis required)                    !
 ! * do_fukui         (performs Fukui function calculation and printing)        !
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
- 
+
 subroutine liomain(E, dipxyz)
     use garcha_mod, only : M, Smat, RealRho, OPEN, writeforces, energy_freq,   &
                            restart_freq, npas, sqsm, mulliken, lowdin, spinpop,&
                            dipole, doing_ehrenfest, first_step,                &
                            Eorbs, fukui, print_coeffs, steep, idip, calc_propM
     use ecp_mod   , only : ecpmode, IzECP
-    use ehrensubs,  only : ehrendyn
- 
+    use ehrensubs,  only : ehrendyn_main
+
     implicit none
     REAL*8, intent(inout) :: dipxyz(3), E
     integer :: idip_scrach
@@ -34,7 +34,7 @@ subroutine liomain(E, dipxyz)
 
 
     if (steep) then
-      idip_scrach=idip 
+      idip_scrach=idip
       idip=0 !skip dipole calculation in geometry optimization
       call do_steep(E)
       idip=idip_scrach
@@ -45,14 +45,9 @@ subroutine liomain(E, dipxyz)
 ! FFR - Option to do ehrenfest
     if ( doing_ehrenfest ) then
        if ( first_step ) call SCF( E, dipxyz )
-       call ehrendyn( E, dipxyz )
+       call ehrendyn_main( E, dipxyz )
     else
-       if(OPEN) then
-          if (ecpmode) stop "ECP is unavailable for Open Shell systems."
-          call SCFOP(E, dipxyz)
-       else
           call SCF(E)
-       endif
     endif
 
 
@@ -68,7 +63,7 @@ subroutine liomain(E, dipxyz)
         if (mulliken.or.lowdin.or.spinpop) call do_population_analysis()
 
         if (dipole) call do_dipole(dipxyz, 69)
-  
+
         if (fukui) call do_fukui()
 
         if (writeforces) then
