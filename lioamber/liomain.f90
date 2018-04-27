@@ -47,7 +47,7 @@ subroutine liomain(E, dipxyz)
        if ( first_step ) call SCF( E, dipxyz )
        call ehrendyn_main( E, dipxyz )
     else
-          call SCF(E)
+       call SCF(E)
     endif
 
 
@@ -150,10 +150,11 @@ end subroutine do_dipole
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 subroutine do_population_analysis()
    use garcha_mod, only : RMM, Smat, RealRho, M, Enucl, Nuc, Iz, natom, &
-                          mulliken, lowdin, spinpop, sqsm, OPEN,        &
-                          rhoalpha,rhobeta
+                          mulliken, lowdin, sqsm, a, c, d, r, Iz, ncont, NORM,&
+                          M, Md, spinpop,OPEN, rhoalpha,rhobeta
+
    use ECP_mod   , only : ecpmode, IzECP
-   use faint_cpu77, only: int1
+   use faint_cpu, only: int1
 
    implicit none
    integer :: M1, M5, IzUsed(natom), kk
@@ -169,7 +170,7 @@ subroutine do_population_analysis()
 
    ! Decompresses and fixes S and RealRho matrixes, which are needed for
    ! population analysis.
-   call int1(Enucl)
+   call int1(Enucl,RMM,Smat,Nuc,a,c,d,r,Iz,ncont,NORM,natom,M,Md)
    call spunpack('L',M,RMM(M5),Smat)
    call spunpack('L',M,RMM(M1),RealRho)
    call fixrho(M,RealRho)
