@@ -34,7 +34,8 @@ subroutine lio_defaults()
                            lowdin, mulliken, print_coeffs, number_restr, Dbug, &
                            steep, Force_cut, Energy_cut, minimzation_steep,    &
                            n_min_steeps, lineal_search, n_points, timers,      &
-                           calc_propM, spinpop, writexyz, IGRID2
+                           calc_propM, spinpop, writexyz, IGRID2,              &
+                           rholinearsearch
 
 
     use ECP_mod   , only : ecpmode, ecptypes, tipeECP, ZlistECP, cutECP,       &
@@ -56,6 +57,7 @@ subroutine lio_defaults()
     ndiis          = 30            ; rmaxs              = 5             ;
     GOLD           = 10.           ; omit_bas           = .false.       ;
     fitting_set    = "DZVP Coulomb Fitting" ;
+    rholinearsearch= .false.       ;
 
 !   Effective Core Potential options.
     ecpmode        = .false.       ; cut2_0             = 15.d0         ;
