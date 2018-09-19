@@ -133,7 +133,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, callfrom)
                            remove_zero_weights, min_points_per_cube,           &
                            max_function_exponent, sphere_radius, M,Fock_Hcore, &
                            Fock_Overlap, P_density, OPEN, timers, MO_coef_at,  &
-                           MO_coef_at_b, charge, RMM_save, Rho_LS
+                           MO_coef_at_b, charge, Rho_LS
     use ECP_mod,    only : Cnorm, ecpmode
     use field_data, only : chrg_sq
     use fileio    , only : lio_logo
@@ -419,14 +419,13 @@ subroutine init_lio_hybrid(hyb_natom, mm_natom, charge, iza, spin)
     integer, intent(in) :: mm_natom  !number of MM atoms
     integer             :: dummy
     character(len=20)   :: inputFile
-    integer, intent(in) :: chargein   !total charge of QM system
+    integer, intent(in) :: charge   !total charge of QM system
     integer, dimension(hyb_natom), intent(in) :: iza  !array of charges of all QM/MM atoms
     double precision, intent(in) :: spin !number of unpaired electrons
     integer :: Nunp_aux !auxiliar
 
     ! Gives default values to runtime variables.
     call lio_defaults()
-    charge = chargein
 
     !select spin case
     Nunp_aux=int(spin)
