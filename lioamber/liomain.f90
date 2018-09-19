@@ -46,7 +46,7 @@ subroutine liomain(E, dipxyz)
     endif
 
     calc_prop=.false.
-    if (MOD(npas, energy_freq).eq.1) calc_prop=.true.
+    if (MOD(npas, energy_freq).eq.0) calc_prop=.true.
     if (calc_propM) calc_prop=.true.
     if ( (restart_freq.gt.0) .and. (MOD(npas, restart_freq).eq.0) ) &
        call do_restart(88)

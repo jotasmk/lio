@@ -102,19 +102,24 @@ subroutine write_energy_convergence(step, energy, good, told, egood, etold)
    double precision, intent(in) :: energy, good, told, egood, etold
 
    if (verbose .lt. 2) return;
-   if (style) then
-      write(*, 8500)
-      write(*, 8501) step, energy
-      write(*, 8502)
-      write(*, 8601)
-      write(*, 8602)
-      write(*, 8603)
-      write(*, 8604) good , told
-      write(*, 8605) egood, etold
-      write(*, 8606)
+
+   if (GOOD .gt. 0.d0) then
+     if (style) then
+       write(*, 8500)
+       write(*, 8501) step, energy
+       write(*, 8502)
+       write(*, 8601)
+       write(*, 8602)
+       write(*, 8603)
+       write(*, 8604) good , told
+       write(*, 8605) egood, etold
+       write(*, 8606)
+     else
+       write(*, 8700) step, energy, good, told, egood, etold
+     endif
    else
-      write(*, 8700) step, energy, good, told, egood, etold
-   endif
+      GOOD=99999d0
+   end if
 
    return;
 8500 FORMAT(4x,"╔════════╦═════════════╦══════════", &

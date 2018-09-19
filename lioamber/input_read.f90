@@ -10,7 +10,6 @@
 subroutine read_options(inputFile)
     use field_subs , only: read_fields
     use lionml_subs, only: lionml_read, lionml_write
-
     implicit none
     character(len=20), intent(in)  :: inputFile
 
@@ -26,6 +25,17 @@ subroutine read_options(inputFile)
     else
        write(*,*) 'File ', adjustl(inputFile), ' not found. Using defaults.'
     endif
+
+    if (Rho_LS .ne. 0 .and. (DIIS .or. hybrid_converg)) then
+      write(*,*) 
+      write(*,*) "<======= WARNING ========>"
+      write(*,*) "cant do Rho lineal search with DIIS"
+      write(*,*) "turning off DIIS"
+      write(*,*) "<========================>"
+
+      DIIS=.false.
+      hybrid_converg=.false.
+    end if
 
     call read_fields()
 

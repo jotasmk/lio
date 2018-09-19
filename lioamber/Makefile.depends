@@ -56,6 +56,8 @@ OBJECTS += elec.o
 OBJECTS += properties.o
 OBJECTS += errlog.o
 OBJECTS += field_subs.o
+OBJECTS += Plinearsearch.o
+
 
 
 ################################################################################
@@ -109,7 +111,7 @@ OBJECTS += dftb_subs.o
 OBJECTS += dftb_data.o
 
 tmplist :=
-tmplist += SCF.o TD.o
+tmplist += SCF.o TD.o 
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/dftb_subs.mod
 
 tmplist :=
@@ -145,7 +147,6 @@ $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/ehrensubs.mod
 tmplist := ehrensubs.o init_lio.o lionml_data.o dft_get_qm_forces.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/ehrendata.mod
 
-
 ################################################################################
 OBJECTS += transport.o
 
@@ -159,6 +160,8 @@ OBJECTS += TD.o
 tmplist :=
 tmplist += SCF.o input_read.o init_lio.o ehrensubs.o lionml_data.o drive.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/TD.mod
+
+
 ################################################################################
 OBJECTS += fockbias_data.o
 OBJECTS += fockbias_subs.o
@@ -197,7 +200,7 @@ OBJECTS += faint_cpu77.o
 #
 modusrs :=
 modusrs += cublasmath.o ehrensubs.o liomain.o maskrmm.o
-modusrs += predictor.o SCF.o TD.o field_subs.o
+modusrs += predictor.o SCF.o TD.o field_subs.o Plinearsearch.o
 modusrs += dft_get_mm_forces.o dft_get_qm_forces.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/faint_cpu77.mod
 
@@ -219,7 +222,7 @@ OBJECTS += faint_cpu.o
 #
 modusrs :=
 modusrs += cublasmath.o ehrensubs.o liomain.o maskrmm.o
-modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o
+modusrs += predictor.o SCF.o SCFop.o TD.o field_subs.o Plinearsearch.o
 modusrs += dft_get_mm_forces.o dft_get_qm_forces.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/faint_cpu.mod
 
@@ -231,7 +234,7 @@ OBJECTS += fileio.o
 tmplist :=
 tmplist += converger_subs.o drive.o init_lio.o
 tmplist += get_restrain_energy_forces.o lio_finalize.o liomain.o lionml_subs.o
-tmplist += steep.o TD.o
+tmplist += steep.o TD.o Plinearsearch.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/fileio.mod
 
 ################################################################################
@@ -283,18 +286,19 @@ modusrs :=
 modusrs += SCF.o
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/typedef_sop.mod
 ################################################################################
+
 include typedef_operator/typedef_operator.mk
 SRCDIRS += typedef_operator
 OBJECTS += typedef_operator.o
 #
 modusrs :=
-modusrs += SCF.o converger_subs.o TD.o
+modusrs += SCF.o converger_subs.o TD.o 
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/typedef_operator.mod
 ################################################################################
 OBJECTS += mask_ecp.o
 #
 #modusrs :=
-modusrs += SCF.o TD.o
+modusrs += SCF.o TD.o 
 $(modusrs:%.o=$(OBJPATH)/%.o) : ${OBJPATH}/mask_ecp.mod
 
 
@@ -355,7 +359,7 @@ ifeq ($(use_cublas),1)
   $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/fortran.o
 
   tmplist :=
-  tmplist += SCF.o TD.o typedef_operator.o transport.o
+  tmplist += SCF.o TD.o typedef_operator.o transport.o 
   tmplist += tmpaux_SCF.o
   $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/cublasmath.mod
 
@@ -383,6 +387,7 @@ tmplist += maskrmm.o SCF_exter.o
 tmplist += intECP.o elec.o func.o tmpaux_SCF.o
 tmplist += faint_cpu77.o steep.o transport.o
 tmplist += liotemp.o lionml_subs.o
+tmplist += Plinearsearch.o
 $(tmplist:%.o=$(OBJPATH)/%.o) : $(OBJPATH)/garcha_mod.mod
 
 

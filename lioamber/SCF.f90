@@ -37,7 +37,7 @@ subroutine SCF(E)
                           total_time, MO_coef_at, MO_coef_at_b, Smat, good_cut,&
                           ndiis, ncont, nshell, rhoalpha, rhobeta, OPEN,nshell,&
                           Nuc, a, c, d, NORM, ntatom, Eorbs_b, ad, cd, ncontd, &
-                          nucd, nshelld
+                          nucd, nshelld, Rho_LS, changed_to_LS
    use ECP_mod, only : ecpmode, term1e, VAAA, VAAB, VBAC, &
                        FOCK_ECP_read,FOCK_ECP_write,IzECP
    use field_data, only: field, fx, fy, fz
@@ -172,6 +172,11 @@ subroutine SCF(E)
    real*8              :: ocupF
    integer             :: NCOa, NCOb
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+! lineal search
+   integer :: nniter
+!%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
+   changed_to_LS=.false.
+
    call g2g_timer_start('SCF_full')
 
    if (verbose > 1) then
@@ -360,13 +365,16 @@ subroutine SCF(E)
                       E1s, Ens, .true.)
           call g2g_timer_stop('intsol')
         else
+	  write(*,*) "flag 1, Nick"
           call aint_qmmm_init(nsol,r,pc)
           call g2g_timer_start('aint_qmmm_fock')
+	  write(*,*) "flag 2, Nick"
           call aint_qmmm_fock(E1s,Ens)
           call g2g_timer_stop('aint_qmmm_fock')
         endif
           call g2g_timer_sum_stop('QM/MM')
       endif
+	  write(*,*) "flag 3, Nick"
 
 
 ! test
@@ -395,15 +403,21 @@ subroutine SCF(E)
         if ( allocated(Ymat) ) deallocate(Ymat)
         allocate(Xmat(M_in,M_in), Ymat(M_in,M_in))
 
+
+	  write(*,*) "flag 4, Nick"
         call overop%Sets_smat( Smat )
+	  write(*,*) "flag 4.1, Nick"
         if (lowdin) then
 !          TODO: inputs insuficient; there is also the symetric orthog using
 !                3 instead of 2 or 1. Use integer for onbasis_id
+	  write(*,*) "flag 4.2, Nick"
            call overop%Gets_orthog_4m( 2, 0.0d0, X_min, Y_min, X_min_trans, Y_min_trans)
         else
+	  write(*,*) "flag 4.3, Nick"
            call overop%Gets_orthog_4m( 1, 0.0d0, X_min, Y_min, X_min_trans, Y_min_trans)
         end if
 
+	  write(*,*) "flag 5, Nick"
 ! TODO: replace X,Y,Xtrans,Ytrans with Xmat, Ymat, Xtrp, Ytrp
 !        do ii=1,M
 !        do jj=1,M
@@ -421,6 +435,7 @@ subroutine SCF(E)
            RMM(M13+kk-1) = Dvec(kk)
         end do
 
+	  write(*,*) "flag 6, Nick"
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%!
 !
 !
@@ -434,6 +449,8 @@ subroutine SCF(E)
         deallocate( sqsmat, tmpmat )
 
 
+
+	  write(*,*) "flag 7, Nick"
 !DFTB: Dimensions of Xmat and Ymat are modified for DFTB.
 !
 ! TODO: this is nasty, a temporary solution would be to have a Msize variable
@@ -455,11 +472,13 @@ subroutine SCF(E)
 
       end if
 
+	  write(*,*) "flag 8, Nick"
 
 ! CUBLAS
    call cublas_setmat( M_in, Xmat, dev_Xmat)
    call cublas_setmat( M_in, Ymat, dev_Ymat)
 
+	  write(*,*) "flag 9, Nick"
 
 ! Generates starting guess
 !
@@ -483,10 +502,14 @@ subroutine SCF(E)
 ! used in density fitting / Coulomb F element calculation here
 ! (t_i in Dunlap)
 !
+
+	write(*,*) "flag 10, Nick"
       call aint_query_gpu_level(igpu)
       if (igpu.gt.2) then
         call aint_coulomb_init()
       endif
+	write(*,*) "flag 10.1, Nick"
+
       if (igpu.eq.5) MEMO = .false.
       !MEMO=.true.
       if (MEMO) then
@@ -495,7 +518,11 @@ subroutine SCF(E)
 !        Large elements of t_i put into double-precision cool here
 !        Size criteria based on size of pre-factor in Gaussian Product Theorem
 !        (applied to MO basis indices)
+	write(*,*) "flag 10.2, Nick"
+
          call int3mem()
+	write(*,*) "flag 10.3, Nick"
+
 !        Small elements of t_i put into single-precision cools here
 !        call int3mems()
          call g2g_timer_stop('int3mem')
@@ -523,6 +550,9 @@ subroutine SCF(E)
 ! only at the end of the SCF, the density matrix and the
 ! vectors are 'coherent'
 
+
+	write(*,*) "flag 15, Nick"
+
       if (hybrid_converg) DIIS=.true. ! cambio para convergencia damping-diis
       call g2g_timer_sum_stop('Initialize SCF')
 !------------------------------------------------------------------------------!
@@ -535,13 +565,20 @@ subroutine SCF(E)
 ! TODO: Maybe evaluate conditions for loop continuance at the end of loop
 !       and condense in a single "keep_iterating" or something like that.
 
+
+	write(*,*) "flag 20, Nick"
+
       do 999 while ((good.ge.told.or.Egood.ge.Etold).and.niter.le.NMAX)
+
         call g2g_timer_start('Total iter')
         call g2g_timer_sum_start('Iteration')
         call g2g_timer_sum_start('Fock integrals')
         niter=niter+1
-        E1=0.0D0
 
+        nniter=niter
+        IF (changed_to_LS .and. niter.eq. (NMAX/2 +1)) nniter=1 !first steep of damping after NMAX steeps without convergence
+
+        E1=0.0D0
 
 !------------------------------------------------------------------------------!
 !       Fit density basis to current MO coeff and calculate Coulomb F elements
@@ -573,7 +610,6 @@ subroutine SCF(E)
         if (Dbug) call SEEK_NaN(RMM,1,MM,"RHO Ex-Corr")
         if (Dbug) call SEEK_NaN(RMM,M5-1,M5-1+MM,"FOCK Ex-Corr")
 
-
 !------------------------------------------------------------------------------!
 ! REACTION FIELD CASE
 !
@@ -598,7 +634,6 @@ subroutine SCF(E)
         endif
         call g2g_timer_start('actualiza rmm')
         call g2g_timer_sum_pause('Fock integrals')
-
 
 !------------------------------------------------------------------------------!
 ! DFTB: we extract rho and fock before conver routine
@@ -674,10 +709,10 @@ subroutine SCF(E)
 !CLOSE SHELL OPTION |
 !%%%%%%%%%%%%%%%%%%%%
 #       ifdef CUBLAS
-           call conver(niter, good, good_cut, M_in, rho_aop, fock_aop,         &
+           call conver(nniter, good, good_cut, M_in, rho_aop, fock_aop,         &
                        dev_Xmat, dev_Ymat, 1)
 #       else
-           call conver(niter, good, good_cut, M_in, rho_aop, fock_aop, Xmat,   &
+           call conver(nniter, good, good_cut, M_in, rho_aop, fock_aop, Xmat,   &
                        Ymat, 1)
 #       endif
 
@@ -691,6 +726,8 @@ subroutine SCF(E)
         call g2g_timer_sum_start('SCF - Fock Diagonalization (sum)')
         call fock_aop%Diagon_datamat( morb_coefon, morb_energy )
         call g2g_timer_sum_pause('SCF - Fock Diagonalization (sum)')
+
+
 !
 !
 !------------------------------------------------------------------------------!
@@ -733,10 +770,10 @@ subroutine SCF(E)
 !OPEN SHELL OPTION  |
 !%%%%%%%%%%%%%%%%%%%%
 #       ifdef CUBLAS
-           call conver(niter, good, good_cut, M_in, rho_bop, fock_bop,         &
+           call conver(nniter, good, good_cut, M_in, rho_bop, fock_bop,         &
                        dev_Xmat, dev_Ymat, 2)
 #       else
-           call conver(niter, good, good_cut, M_in, rho_bop, fock_bop, Xmat,     &
+           call conver(nniter, good, good_cut, M_in, rho_bop, fock_bop, Xmat,     &
                        Ymat, 2)
 #       endif
 
@@ -770,7 +807,6 @@ subroutine SCF(E)
         call messup_densmat( rho_b )
 
          Eorbs_b=morb_energy
-
 !carlos: Storing autovectors to create the restart
         i0 = 0
         if (dftb_calc) i0=MTB
@@ -838,19 +874,20 @@ subroutine SCF(E)
           end if
         end if
 
+
+
 !------------------------------------------------------------------------------!
-! TODO: convergence criteria should be a separated subroutine...
-        good = 0.0d0
-        do jj=1,M
-        do kk=jj,M
-          del=xnano(jj,kk)-(RMM(kk+(M2-jj)*(jj-1)/2))
-          del=del*sq2
-          good=good+del**2
-          RMM(kk+(M2-jj)*(jj-1)/2)=xnano(jj,kk)
-        enddo
-        enddo
-        good=sqrt(good)/float(M)
-        deallocate ( xnano )
+! Convergence criteria and lineal search in P
+
+	IF (OPEN) call P_conver(Rho_LS, nniter, En, E1, E2, Ex, good, xnano, rho_a, rho_b)
+	IF (.not. OPEN) call P_conver(Rho_LS, nniter, En, E1, E2, Ex, good, xnano, rho_a, rho_a)
+!------------------------------------------------------------------------------!
+
+
+	deallocate ( xnano )
+
+! TODO: what is this doing here???
+        call g2g_timer_stop('dens_GPU')
 
 !------------------------------------------------------------------------------!
 ! TODO: finalization of the loop is a little bit messy. Also: "999 continue"??
@@ -859,6 +896,22 @@ subroutine SCF(E)
         ! Damping factor update
         DAMP=DAMP0
         E=E1+E2+En
+!
+        call g2g_timer_stop('otras cosas')
+!       write energy at every step
+	if (niter.eq.NMAX) then
+	  if (Rho_LS .eq.0) then
+	    write(6,*) 'NO CONVERGENCE AT ',NMAX,' ITERATIONS'
+	    write(6,*) 'trying Lineal search'
+	    Rho_LS=1
+	    NMAX=2*NMAX
+	    changed_to_LS=.true.
+	    call P_linearsearch_init()
+	  end if
+	end if
+
+        if (verbose) call WRITE_E_STEP(niter, E+Ex)
+
         Egood=abs(E+Ex-Evieja)
         Evieja=E+Ex
 
@@ -883,6 +936,12 @@ subroutine SCF(E)
          noconverge = 0
          converge   = converge + 1
       endif
+
+      if (changed_to_LS) then
+         changed_to_LS=.false.
+         NMAX=NMAX/2
+         Rho_LS=0
+      end if
 
       if (noconverge.gt.4) then
          write(6,'(A)')  'FATAL ERROR - No convergence achieved 4 times.'

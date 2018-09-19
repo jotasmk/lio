@@ -33,7 +33,8 @@ subroutine lio_defaults()
                            lowdin, mulliken, print_coeffs, number_restr, Dbug, &
                            steep, Force_cut, Energy_cut, minimzation_steep,    &
                            n_min_steeps, lineal_search, n_points, timers,      &
-                           calc_propM, spinpop, writexyz, IGRID2
+                           calc_propM, spinpop, writexyz, IGRID2,              &
+                           Rho_LS, P_oscilation_analisis
 
 
     use ECP_mod   , only : ecpmode, ecptypes, tipeECP, ZlistECP, cutECP,       &
@@ -56,6 +57,7 @@ subroutine lio_defaults()
     GOLD           = 10.           ; omit_bas           = .false.       ;
     charge         = 0             ;
     fitting_set    = "DZVP Coulomb Fitting" ;
+    Rho_LS         = 0             ; P_oscilation_analisis = .false.
 
 !   Effective Core Potential options.
     ecpmode        = .false.       ; cut2_0             = 15.d0         ;
@@ -131,7 +133,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, callfrom)
                            remove_zero_weights, min_points_per_cube,           &
                            max_function_exponent, sphere_radius, M,Fock_Hcore, &
                            Fock_Overlap, P_density, OPEN, timers, MO_coef_at,  &
-                           MO_coef_at_b, charge
+                           MO_coef_at_b, charge, RMM_save, Rho_LS
     use ECP_mod,    only : Cnorm, ecpmode
     use field_data, only : chrg_sq
     use fileio    , only : lio_logo
@@ -173,6 +175,13 @@ subroutine init_lio_common(natomin, Izin, nclatom, callfrom)
     ng2 = 5*ngDyn*(ngDyn+1)/2 + 3*ngdDyn*(ngdDyn+1)/2 + &
           ngDyn  + ngDyn*norbit + Ngrid
 
+    if (ng2 .le. 0) then
+      write(*,*) "Error in ng2"
+      write(*,*) "dimension for RMM is greater than max integer representaion"
+      write(*,*) "should break RMM into smaller arrays"
+      stop 
+    end if
+
     allocate(RMM(ng2)    , d(natom, natom), c(ngDyn,nl)   , a(ngDyn,nl)     ,&
              Nuc(ngDyn)  , ncont(ngDyn)   , cd(ngdDyn,nl) , ad(ngdDyn,nl)   ,&
              Nucd(ngdDyn), ncontd(ngdDyn) , indexii(ngDyn), indexiid(ngdDyn),&
@@ -199,6 +208,7 @@ subroutine init_lio_common(natomin, Izin, nclatom, callfrom)
     ! reemplazos de RMM
     MM=M*(M+1)/2
     allocate(Fock_Hcore(MM), Fock_Overlap(MM), P_density(MM))
+    if ( (Rho_LS.gt.0)) call P_linearsearch_init()
     call g2g_timer_stop('lio_init')
 
     return
