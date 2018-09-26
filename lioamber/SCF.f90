@@ -212,6 +212,7 @@ subroutine SCF(E)
    call g2g_timer_sum_start('SCF')
    call g2g_timer_sum_start('Initialize SCF')
 
+
    npas=npas+1
    E=0.0D0
    E1=0.0D0
@@ -274,6 +275,7 @@ subroutine SCF(E)
       M22 = M20 +2*MM !W ( beta eigenvalues )
    end if
 
+
 !------------------------------------------------------------------------------!
 ! TODO: I don't like ending timers inside a conditional...
        if (cubegen_only) then
@@ -332,6 +334,7 @@ subroutine SCF(E)
         call g2g_timer_sum_stop('TD')
         return
       endif
+
 !
 ! -Create integration grid for XC here
 ! -Assign points to groups (spheres/cubes)
@@ -354,6 +357,7 @@ subroutine SCF(E)
                 ntatom)
       call ECP_fock( MM, RMM(M11) )
 
+
 ! Other terms
 !
       call g2g_timer_sum_stop('Nuclear attraction')
@@ -372,7 +376,6 @@ subroutine SCF(E)
         endif
           call g2g_timer_sum_stop('QM/MM')
       endif
-
 
 ! test
 ! TODO: test? remove or sistematize
@@ -462,7 +465,6 @@ subroutine SCF(E)
 
       end if
 
-
 ! CUBLAS
    call cublas_setmat( M_in, Xmat, dev_Xmat)
    call cublas_setmat( M_in, Ymat, dev_Ymat)
@@ -496,6 +498,7 @@ subroutine SCF(E)
       if (igpu.gt.2) then
         call aint_coulomb_init()
       endif
+
 
       if (igpu.eq.5) MEMO = .false.
       !MEMO=.true.
@@ -548,7 +551,6 @@ subroutine SCF(E)
 !------------------------------------------------------------------------------!
 ! TODO: Maybe evaluate conditions for loop continuance at the end of loop
 !       and condense in a single "keep_iterating" or something like that.
-
 
 
       do 999 while ((good.ge.told.or.Egood.ge.Etold).and.niter.le.NMAX)
@@ -710,7 +712,6 @@ subroutine SCF(E)
         call fock_aop%Diagon_datamat( morb_coefon, morb_energy )
         call g2g_timer_sum_pause('SCF - Fock Diagonalization (sum)')
 
-
 !
 !
 !------------------------------------------------------------------------------!
@@ -747,6 +748,7 @@ subroutine SCF(E)
           MO_coef_at(kkk) = morb_coefat( i0+ii, kk )
         enddo
         enddo
+
 
     if (OPEN) then
 !%%%%%%%%%%%%%%%%%%%%
@@ -803,6 +805,8 @@ subroutine SCF(E)
         enddo
 
     end if!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 !------------------------------------------------------------------------------!
 !carlos: storing matrices
 !------------------------------------------------------------------------------!
